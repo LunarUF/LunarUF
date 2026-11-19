@@ -12,19 +12,19 @@
   <style>
     :root {
       color-scheme: dark;
-      --ink: #f5f5f8;
-      --muted: #a3a9bb;
-      --night: #070b18;
-      --line: rgba(222, 230, 255, .14);
-      --lavender: #c1b8ff;
-      --mint: #b9f2e3;
+      --ink: #f8f8f8;
+      --muted: #a3a3a3;
+      --night: #000;
+      --line: rgba(255, 255, 255, .15);
+      --lavender: #fff;
+      --mint: #fff;
     }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body {
       margin: 0;
       min-width: 320px;
-      background: var(--night);
+      background: #000;
       color: var(--ink);
       font-family: "DM Sans", sans-serif;
       -webkit-font-smoothing: antialiased;
@@ -33,25 +33,31 @@
     .sky {
       position: fixed;
       inset: 0;
-      z-index: -2;
+      z-index: 0;
       overflow: hidden;
       pointer-events: none;
-      background:
-        radial-gradient(ellipse at 79% 31%, rgba(83, 78, 157, .19), transparent 33%),
-        radial-gradient(ellipse at 13% 72%, rgba(38, 102, 108, .12), transparent 34%),
-        linear-gradient(155deg, #080d1d 0%, #070b18 55%, #0b1022 100%);
+      background: #000;
     }
-    #stars { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #stars { position: absolute; inset: 0; overflow: hidden; }
+    .sky-star {
+      position: absolute;
+      display: block;
+      color: #fff;
+      line-height: 1;
+      text-shadow: 0 0 9px rgba(255,255,255,.45);
+      user-select: none;
+      animation: twinkle var(--twinkle-time) ease-in-out infinite alternate;
+    }
+    @keyframes twinkle { from { opacity: .32; } to { opacity: 1; } }
     .nebula {
       position: absolute;
       width: 540px;
       height: 540px;
       top: 6%; right: 5%;
       border-radius: 50%;
-      background: rgba(119, 106, 206, .11);
-      filter: blur(100px);
+      display: none;
     }
-    .shell { width: min(1120px, calc(100% - 56px)); margin-inline: auto; }
+    .shell { position: relative; z-index: 1; width: min(1120px, calc(100% - 56px)); margin-inline: auto; }
     header {
       height: 88px;
       display: flex;
@@ -75,7 +81,7 @@
       border-radius: 50%;
       color: #f6f2ff;
       font-size: 20px;
-      box-shadow: 0 0 22px rgba(194,184,255,.16), inset 0 0 15px rgba(194,184,255,.1);
+      box-shadow: 0 0 22px rgba(255,255,255,.12), inset 0 0 15px rgba(255,255,255,.06);
     }
     nav { display: flex; align-items: center; gap: 38px; }
     nav a { text-decoration: none; color: #c5c9d5; font-size: 13px; transition: color .2s; }
@@ -148,11 +154,11 @@
       aspect-ratio: 1;
       border: 1px solid rgba(197, 190, 255, .16);
       border-radius: 50%;
-      box-shadow: 0 0 90px rgba(114, 101, 198, .1), inset 0 0 70px rgba(114, 101, 198, .06);
+      box-shadow: 0 0 90px rgba(255,255,255,.07), inset 0 0 70px rgba(255,255,255,.025);
     }
-    .orbit::before, .orbit::after { content: ""; position: absolute; border: 1px solid rgba(197,190,255,.09); border-radius: 50%; }
+    .orbit::before, .orbit::after { content: ""; position: absolute; border: 1px solid rgba(255,255,255,.09); border-radius: 50%; }
     .orbit::before { inset: 22px; }
-    .orbit::after { inset: -24px; border-style: dashed; border-color: rgba(197,190,255,.12); }
+    .orbit::after { inset: -24px; border-style: dashed; border-color: rgba(255,255,255,.12); }
     .logo-card {
       position: relative;
       width: min(335px, 70%);
@@ -161,13 +167,13 @@
       border-radius: 30px;
       overflow: hidden;
       background: #001020;
-      box-shadow: 0 22px 80px rgba(0,0,0,.38), 0 0 75px rgba(164,155,255,.12);
+      box-shadow: 0 22px 80px rgba(0,0,0,.65), 0 0 75px rgba(255,255,255,.07);
       transform: rotate(-3deg);
     }
     .logo-card img { width: 100%; height: 100%; display: block; object-fit: cover; }
-    .sparkle { position: absolute; color: #e7e1ff; font-size: 19px; text-shadow: 0 0 18px #aaa0ff; }
+    .sparkle { position: absolute; color: #fff; font-size: 19px; text-shadow: 0 0 18px rgba(255,255,255,.75); }
     .sparkle.one { top: 19%; right: 12%; }
-    .sparkle.two { bottom: 18%; left: 8%; font-size: 12px; color: var(--mint); }
+    .sparkle.two { bottom: 18%; left: 8%; font-size: 12px; color: #fff; }
     .art-note {
       position: absolute;
       right: 0; bottom: 30px;
@@ -239,7 +245,7 @@
   </style>
 </head>
 <body>
-  <div class="sky" aria-hidden="true"><div class="nebula"></div><canvas id="stars"></canvas></div>
+  <div class="sky" aria-hidden="true"><div class="nebula"></div><div id="stars"></div></div>
   <div class="shell">
     <header>
       <a class="brand" href="#hem" aria-label="Lunar UF, till startsidan"><span class="brand-mark" aria-hidden="true">☾</span><span>LUNAR <span style="color:#aeb4c5">UF</span></span></a>
@@ -287,35 +293,21 @@
   </div>
   <script>
     (() => {
-      const canvas = document.getElementById('stars');
-      const context = canvas.getContext('2d');
-      let stars = [];
-      let width = 0, height = 0, frame = 0;
-      const resize = () => {
-        const scale = Math.min(window.devicePixelRatio || 1, 2);
-        width = window.innerWidth; height = window.innerHeight;
-        canvas.width = width * scale; canvas.height = height * scale;
-        context.setTransform(scale, 0, 0, scale, 0, 0);
-        const count = Math.min(180, Math.floor(width * height / 6500));
-        stars = Array.from({ length: count }, () => ({
-          x: Math.random() * width, y: Math.random() * height,
-          radius: Math.random() * 1.25 + .25,
-          phase: Math.random() * Math.PI * 2,
-          speed: Math.random() * .018 + .004
-        }));
-      };
-      const draw = () => {
-        context.clearRect(0, 0, width, height);
-        stars.forEach(star => {
-          const alpha = .27 + (Math.sin(frame * star.speed + star.phase) + 1) * .28;
-          context.beginPath(); context.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-          context.fillStyle = `rgba(232, 234, 255, ${alpha})`; context.fill();
-        });
-        frame++;
-        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) requestAnimationFrame(draw);
-      };
-      resize(); draw();
-      window.addEventListener('resize', resize, { passive: true });
+      const starField = document.getElementById('stars');
+      const shapes = ['✦', '✧', '⋆', '✴'];
+      const starCount = 100;
+      for (let i = 0; i < starCount; i++) {
+        const star = document.createElement('span');
+        star.className = 'sky-star';
+        star.textContent = shapes[Math.floor(Math.random() * shapes.length)];
+        star.style.left = `${Math.random() * 98 + 1}%`;
+        star.style.top = `${Math.random() * 96 + 2}%`;
+        star.style.fontSize = `${Math.random() * 10 + 9}px`;
+        star.style.setProperty('--twinkle-time', `${Math.random() * 3 + 2}s`);
+        star.style.animationDelay = `${Math.random() * 3}s`;
+        star.style.transform = `rotate(${Math.random() * 45 - 22}deg)`;
+        starField.appendChild(star);
+      }
     })();
   </script>
 </body>
